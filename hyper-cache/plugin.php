@@ -4,16 +4,12 @@
   Plugin Name: Hyper Cache For SAE
   Plugin URI: http://www.satollo.net/plugins/hyper-cache
   Description: A easy to configure and efficient cache to increase the speed of your blog.
-  Version: 3.1.9
+  Version: 3.2.2
   Author: Stefano Lissa & Xider
   Author URI: http://www.satollo.net
   Disclaimer: Use at your own risk. No warranty expressed or implied is provided.
   Contributors: satollo
  */
-
-if (!defined('HYPER_CACHE_LOG')) {
-    define('HYPER_CACHE_LOG', false);
-}
 
 if (isset($_GET['cache'])) {
     if ($_GET['cache'] === '0') {
@@ -82,18 +78,18 @@ class HyperCache {
         }
     }
 
-    function log($object) {
-        if (is_object($object) || is_array($object)) {
-            $object = print_r($object, true);
-        }
-        //file_put_contents(WP_CONTENT_DIR . '/logs/hyper-cache.log', $object, FILE_APPEND);
-        error_log($object);
-    }
+//    function log($object) {
+//        if (is_object($object) || is_array($object)) {
+//            $object = print_r($object, true);
+//        }
+//        //file_put_contents(WP_CONTENT_DIR . '/logs/hyper-cache.log', $object, FILE_APPEND);
+//        error_log($object);
+//    }
 
     function hook_activate() {
-        /*if (!is_dir(WP_CONTENT_DIR . '/logs')) {
+        if (!is_dir(WP_CONTENT_DIR . '/logs')) {
             wp_mkdir_p(WP_CONTENT_DIR . '/logs');
-        }*/
+        }
 
         if (!isset($this->options['mobile'])) {
             $this->options['mobile'] = 0;
@@ -132,12 +128,12 @@ class HyperCache {
 
         update_option('hyper-cache', $this->options);
 
-        //@wp_mkdir_p(WP_CONTENT_DIR . '/cache/hyper-cache');
+        @wp_mkdir_p(WP_CONTENT_DIR . '/cache/hyper-cache');
 
-       /* if (is_file(WP_CONTENT_DIR . '/advanced-cache.php')) {
+        if (is_file(WP_CONTENT_DIR . '/advanced-cache.php')) {
             $this->build_advanced_cache();
             touch(WP_CONTENT_DIR . '/advanced-cache.php');
-        }*/
+        }
 
         if (!wp_next_scheduled('hyper_cache_clean')) {
             wp_schedule_event(time() + 300, 'hourly', 'hyper_cache_clean');
@@ -146,7 +142,7 @@ class HyperCache {
 
     function hook_deactivate() {
         // Reset the file without deleting it to avoid to lost manually assigned permissions
-        //file_put_contents(WP_CONTENT_DIR . '/advanced-cache.php', '');
+        file_put_contents(WP_CONTENT_DIR . '/advanced-cache.php', '');
         wp_clear_scheduled_hook('hyper_cache_clean');
     }
 
@@ -192,44 +188,37 @@ class HyperCache {
         $advanced_cache = str_replace('HC_SERVE_EXPIRED_TO_BOT', isset($this->options['serve_expired_to_bots']) ? 1 : 0, $advanced_cache);
         $advanced_cache = str_replace('HC_BOTS_IGNORE_NOCACHE', isset($this->options['bots_ignore_nocache']) ? 1 : 0, $advanced_cache);
 
-        //return file_put_contents(WP_CONTENT_DIR . '/advanced-cache.php', $advanced_cache);
-        return 1;
+        return file_put_contents(WP_CONTENT_DIR . '/advanced-cache.php', $advanced_cache);
     }
 
     function hook_bbp_new_reply($reply_id) {
         $topic_id = bbp_get_reply_topic_id($reply_id);
         $topic_url = bbp_get_topic_permalink($topic_id);
         //$dir = $this->get_folder() . '' . substr($topic_url, strlen(get_option('home'))) . '/';
-        $dir =substr($topic_url, strpos($topic_url, '://') + 3) . '/';
-        //$this->remove_dir($dir);
-        $this->deletekvdb($dir);
+        $dir = $this->get_folder() . '/' . substr($topic_url, strpos($topic_url, '://') + 3) . '/';
+        $this->remove_dir($dir);
 
         $forum_id = bbp_get_reply_forum_id($reply_id);
         $forum_url = bbp_get_forum_permalink($forum_id);
         //$dir = $this->get_folder() . '' . substr($forum_url, strlen(get_option('home'))) . '/';
-        $dir =substr($topic_url, strpos($forum_url, '://') + 3) . '/';
-        //$this->remove_dir($dir);
-        $this->deletekvdb($dir);
+        $dir = $this->get_folder() . '/' . substr($topic_url, strpos($forum_url, '://') + 3) . '/';
+        $this->remove_dir($dir);
     }
 
     function hook_bbp_new_topic($topic_id) {
         $topic_url = bbp_get_topic_permalink($topic_id);
         //$dir = $this->get_folder() . '' . substr($topic_url, strlen(get_option('home'))) . '/';
-        $dir = substr($topic_url, strpos($topic_url, '://') + 3) . '/';
-        //$this->remove_dir($dir);
-        $this->deletekvdb($dir);
+        $dir = $this->get_folder() . '/' . substr($topic_url, strpos($topic_url, '://') + 3) . '/';
+        $this->remove_dir($dir);
 
         $forum_id = bbp_get_topic_forum_id($topic_id);
         $forum_url = bbp_get_forum_permalink($forum_id);
-        $dir = substr($topic_url, strpos($forum_url, '://') + 3) . '/';
+        $dir = $this->get_folder() . '/' . substr($topic_url, strpos($forum_url, '://') + 3) . '/';
         //$dir = $this->get_folder() . '' . substr($forum_url, strlen(get_option('home'))) . '/';
-        //$this->remove_dir($dir);
-        $this->deletekvdb($dir);
+        $this->remove_dir($dir);
     }
 
     function hook_comment_post($comment_id, $status) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Hook: comment_post');
         if ($status === 1) {
             $comment = get_comment($comment_id);
             $this->clean_post($comment->comment_post_ID, isset($this->options['clean_archives_on_comment']), isset($this->options['clean_archives_on_comment']));
@@ -237,8 +226,6 @@ class HyperCache {
     }
 
     function hook_wp_update_comment_count($post_id) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Hook: wp_update_comment_count');
         if ($this->post_id == $post_id) {
             return;
         }
@@ -246,43 +233,58 @@ class HyperCache {
     }
 
     function hook_save_post($post_id) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Hook: save_post');
     }
+
+    /**
+*
+*    Hyper Cache For SAE Start
+*
+*/
+function deletekvdb($name = '', $is_file = false)
+{
+    $kv = new SaeKV();
+    // 初始化SaeKV对象
+    $ret = $kv->init();
+    if ($is_file) {
+        $ret = $kv->delete('cache/' . strtolower($_SERVER['HTTP_HOST']) . '/' . $name);
+    } else {
+        $ret = $kv->pkrget('cache/' . strtolower($_SERVER['HTTP_HOST']) . '/' . $name, 100);
+        while (true) {
+            foreach ($ret as $k => $v) {
+                $kv->delete($k);
+            }
+            end($ret);
+            $start_key = key($ret);
+            $i = count($ret);
+            if ($i < 100) {
+                break;
+            }
+            $ret = $kv->pkrget('cache/' . strtolower($_SERVER['HTTP_HOST']) . $name, 100, $start_key);
+        }
+    }
+}
 
     /**
      * edit_post is called even when a comment is added, but the comment hook prevent the execution of
      * edit_post like if the post has been modified.
      */
     function hook_edit_post($post_id) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Hook: edit_post');
         $this->clean_post($post_id, isset($this->options['clean_archives_on_post_edit']), isset($this->options['clean_home_on_post_edit']));
     }
 
     function clean_post($post_id, $clean_archives = true, $clean_home = true) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Cleaning post ' . $post_id);
+
         // When someone deletes the advaced-cache.php file
         if (!function_exists('hyper_cache_sanitize_uri')) {
-            if (HYPER_CACHE_LOG)
-                $this->log('hyper_cache_sanitize_uri does not exists');
             return;
         }
 
         if ($this->post_id == $post_id) {
-            if (HYPER_CACHE_LOG)
-                $this->log('Already cleaned in this session');
             return;
         }
 
         $status = get_post_status($post_id);
-        if (HYPER_CACHE_LOG)
-            $this->log('Status: ' . $status);
         if ($status != 'publish' && $status != 'trash') {
-            if (HYPER_CACHE_LOG)
-                $this->log('Post not published');
-            //$this->log('Not a published post');
             return;
         }
 
@@ -292,31 +294,27 @@ class HyperCache {
         }
 
         $this->post_id = $post_id;
+        $post_folder=$this->post_folder($post_id);
         //$folder = trailingslashit($this->get_folder());
-        $dir = $this->post_folder($post_id);
+        //$dir = $folder . $this->post_folder($post_id);
         //$this->remove_dir($dir);
-        $this->deletekvdb($dir);
+        $this->deletekvdb($post_folder);
 
         if ($this->options['clean_last_posts'] != 0) {
             $posts = get_posts(array('numberposts' => $this->options['clean_last_posts']));
             foreach ($posts as &$post) {
-                $dir = $this->post_folder($post_id);
+                //$dir = $folder . $this->post_folder($post_id);
                 //$this->remove_dir($dir);
-                $this->deletekvdb($dir);
+                $post_folder=$this->post_folder($post_id);
+                $this->deletekvdb($post_folder);
             }
         }
 
 
-        $dir = $folder . substr(get_option('home'), strpos(get_option('home'), '://') + 3);
+        /*$dir = $folder . substr(get_option('home'), strpos(get_option('home'), '://') + 3);
 
         if ($clean_home) {
-            if (HYPER_CACHE_LOG)
-                $this->log('Cleaning the home');
 
-            // The home
-            if (HYPER_CACHE_LOG)
-                $this->log('Cleaning the home index*');
-            /*
             @unlink($dir . '/index.html');
             @unlink($dir . '/index.html.gz');
             @unlink($dir . '/index-https.html');
@@ -324,27 +322,22 @@ class HyperCache {
             @unlink($dir . '/index-mobile.html');
             @unlink($dir . '/index-mobile.html.gz');
             @unlink($dir . '/index-https-mobile.html');
-            @unlink($dir . '/index-https-mobile.html.gz');*/
-            $this->deletekvdb('index');
+            @unlink($dir . '/index-https-mobile.html.gz');
 
-            //$this->remove_dir($dir . '/feed/');
-            $this->deletekvdb('feed');
+            $this->remove_dir($dir . '/feed/');
             // Home subpages
-            //$this->remove_dir($dir . '/page/');
-            $this->deletekvdb('page');
+            $this->remove_dir($dir . '/page/');
         }
+
 
         //@unlink($dir . '/robots.txt');
         if ($clean_archives) {
-            if (HYPER_CACHE_LOG)
-                $this->log('Cleaning archives');
 
             $base = get_option('category_base');
             if (empty($base)) {
                 $base = 'category';
             }
-            //$this->remove_dir($dir . '/' . $base . '/');
-            $this->deletekvdb($base);
+            $this->remove_dir($dir . '/' . $base . '/');
 
             $permalink_structure = get_option('permalink_structure');
             //$this->log(substr($permalink_structure, 0, 11));
@@ -353,8 +346,7 @@ class HyperCache {
                 //$this->log(print_r($categories, true));
                 foreach ($categories as &$category) {
                     //$this->log('Removing: ' . $dir . '/' . $category->slug . '/');
-                    //$this->remove_page($dir . '/' . $category->slug);
-                    $this->deletekvdb($category->slug);
+                    $this->remove_page($dir . '/' . $category->slug);
                 }
             }
 
@@ -362,15 +354,32 @@ class HyperCache {
             if (empty($base)) {
                 $base = 'tag';
             }
-            //$this->remove_dir($dir . '/' . $base . '/');
-            $this->deletekvdb($base);
+            $this->remove_dir($dir . '/' . $base . '/');
 
-            //$this->remove_dir($dir . '/type/');
-            $this->deletekvdb('type');
+            $this->remove_dir($dir . '/type/');
 
-            //$this->remove_dir($dir . '/' . date('Y') . '/');
-            $this->deletekvdb(date('Y'));
-        }
+            $this->remove_dir($dir . '/' . date('Y') . '/');
+        }*/
+
+        $na='index';
+$this->deletekvdb($na);
+$na='robots.txt';
+$this->deletekvdb($na,true);
+$na='feed';
+$this->deletekvdb($na);
+$na='page';
+$this->deletekvdb($na);
+$na = get_option('category_base');
+    if (empty($na)) {
+        $na = 'category';
+    }
+$this->deletekvdb($na);
+    $na = get_option('tag_base');
+    if (empty($na)) {
+        $na = 'tag';
+    }
+$this->deletekvdb($na);
+
     }
 
     /*
@@ -401,10 +410,6 @@ class HyperCache {
 
     function hook_template_redirect() {
         global $cache_stop, $hyper_cache_stop, $lite_cache_stop;
-
-        if (HYPER_CACHE_LOG) {
-            $this->log('hook_template_redirect');
-        }
 
         if ($this->ob_started) {
             return;
@@ -519,10 +524,9 @@ class HyperCache {
         $parts = parse_url($url);
         return $parts['host'] . hyper_cache_sanitize_uri($parts['path']);
     }
-/*
+
     function remove_page($dir) {
-        if (HYPER_CACHE_LOG)
-            $this->log('Removing page: ' . $dir);
+
         $dir = untrailingslashit($dir);
         @unlink($dir . '/index.html');
         @unlink($dir . '/index.html.gz');
@@ -533,46 +537,15 @@ class HyperCache {
         @unlink($dir . '/index-https-mobile.html');
         @unlink($dir . '/index-https-mobile.html.gz');
 
-        //$this->remove_dir($dir . '/feed/');
-        $this->deletekvdb('feed');
+        $this->remove_dir($dir . '/feed/');
         // Pagination
-        //$this->remove_dir($dir . '/page/');
-        $this->deletekvdb('page');
+        $this->remove_dir($dir . '/page/');
+
+
     }
-*/
 
-/**
-*
-*    Hyper Cache For SAE Start
-*
-*/
-function deletekvdb($name='',$is_file=false){
-    $kv = new SaeKV();
-// 初始化SaeKV对象
-$ret = $kv->init();
-if($is_file){
-$ret = $kv->delete('cache/'.strtolower($_SERVER['HTTP_HOST']).'/'.$name);
-}else{
-    $ret = $kv->pkrget('cache/'.strtolower($_SERVER['HTTP_HOST']).'/'.$name, 100);
-while (true) {
-   foreach($ret as $k=>$v)
-    $kv->delete($k);
-   end($ret);
-   $start_key = key($ret);
-   $i = count($ret);
-   if ($i < 100) break;
-   $ret = $kv->pkrget('cache/'.strtolower($_SERVER['HTTP_HOST']).$name, 100, $start_key);
-}
-}
-
-}
-/*
     function remove_dir($dir) {
-        if (HYPER_CACHE_LOG) {
-            $this->log('Removing dir: ' . $dir);
-        }
         $dir = trailingslashit($dir);
-        
         $files = glob($dir . '*', GLOB_MARK);
         if (!empty($files)) {
             foreach ($files as &$file) {
@@ -584,22 +557,16 @@ while (true) {
             }
         }
         @rmdir($dir);
-    }*/
+    }
 
     function hook_hyper_cache_clean() {
         if (!isset($this->options['autoclean'])) {
             return;
         }
-        if (HYPER_CACHE_LOG) {
-            $this->log('Periodic cache cleaning start');
-        }
         if ($this->options['max_age'] == 0) {
             return;
         }
         $this->remove_older_than(time() - $this->options['max_age'] * 3600);
-        if (HYPER_CACHE_LOG) {
-            $this->log('Periodic cache cleaning stop');
-        }
     }
 
     function remove_older_than($time) {
@@ -625,8 +592,7 @@ while (true) {
 
     function get_folder() {
         if (empty($this->options['folder']))
-            //return WP_CONTENT_DIR . '/cache/hyper-cache';
-            return 'saekv://cache';
+            return WP_CONTENT_DIR . '/cache/hyper-cache';
         else
             return $this->options['folder'];
     }
@@ -692,15 +658,14 @@ function hyper_cache_callback($buffer) {
 
         $buffer = preg_replace_callback("#(<img.+src=[\"'])(" . $base . ".*)([\"'])#U", 'hyper_cache_cdn_callback', $buffer);
         $buffer = preg_replace_callback("#(<script.+src=[\"'])(" . $base . ".*)([\"'])#U", 'hyper_cache_cdn_callback', $buffer);
-        $buffer = preg_replace_callback("#(<link.+href=[\"'])(" . $base . ".*)([\"'])#U", 'hyper_cache_cdn_callback', $buffer);
+        $buffer = preg_replace_callback("#(<link.+href=[\"'])(" . $base . ".*\.css.*)([\"'])#U", 'hyper_cache_cdn_callback', $buffer);
     }
 
     $buffer = apply_filters('cache_buffer', $buffer);
 
     if ($cache_stop || $hyper_cache_stop) {
 
-        if (isset($options['gzip']) && $hyper_cache_gzip_accepted && function_exists('gzencode')) {
-            //error_log('dsfsdfsdfsdfsdffafasfsafdsa');
+        if (isset($options['gzip_on_the_fly']) && $hyper_cache_gzip_accepted && function_exists('gzencode')) {
             header('Cache-Control: private, max-age=0, no-cache, no-transform', false);
             header('Vary: Accept-Encoding,User-Agent');
             header('Content-Encoding: gzip');
@@ -717,7 +682,7 @@ function hyper_cache_callback($buffer) {
     if ($hyper_cache_is_mobile) {
         // Bypass (should no need since there is that control on advanced-cache.php)
         if ($options['mobile'] == 2) {
-            if (isset($options['gzip']) && $hyper_cache_gzip_accepted && function_exists('gzencode')) {
+            if (isset($options['gzip_on_the_fly']) && $hyper_cache_gzip_accepted && function_exists('gzencode')) {
                 header('Cache-Control: private, max-age=0, no-cache, no-transform', false);
                 header('Vary: Accept-Encoding,User-Agent');
                 header('Content-Encoding: gzip');
@@ -729,15 +694,13 @@ function hyper_cache_callback($buffer) {
     }
 
     if (is_404()) {
-        $lc_file = HyperCache::$instance->get_folder() . '' . strtolower($_SERVER['HTTP_HOST']) . '/404.html';
-        $lc_file_ts='cache/'.strtolower($_SERVER['HTTP_HOST']).'/404.html-ts';
+        $lc_file = HyperCache::$instance->get_folder() . '/' . strtolower($_SERVER['HTTP_HOST']) . '/404.html';
     } else {
-        $lc_file = $lc_dir . 'index' . $hyper_cache_group . '.html';
-        $lc_file_ts='cache/'.strtolower($_SERVER['HTTP_HOST']). $uri .'index'.$hyper_cache_group.'.html-ts';
-/*
+        $lc_file = $lc_dir . '/index' . $hyper_cache_group . '.html';
+
         if (!is_dir($lc_dir)) {
             wp_mkdir_p($lc_dir);
-        }*/
+        }
     }
 
     if (!isset($options['reject_comment_authors']) && is_singular() && !is_feed() && !is_user_logged_in()) {
@@ -767,18 +730,15 @@ function hyper_cache_callback($buffer) {
         }
     }
 
-    file_put_contents($lc_file, $buffer . '<!-- hyper cache for sae ' . date('Y-m-d h:i:s') . ' -->');
-    //file_put_contents($lc_file_ts,strval(time()));
-    $kv = new SaeKV();
-// 初始化SaeKV对象
-$ret = $kv->init();
-$ret=$kv->set($lc_file_ts,strval(time()));
+    @file_put_contents($lc_file, $buffer . '<!-- hyper cache ' . date('Y-m-d h:i:s') . ' -->');
 
     // Saves the gzipped version
     if (isset($options['gzip'])) {
         $gzf = gzopen($lc_file . '.gz', 'wb9');
-        gzwrite($gzf, $buffer . '<!-- hyper cache gzip for sae ' . date('Y-m-d h:i:s') . ' -->');
-        gzclose($gzf);
+        if ($gzf !== false) {
+            gzwrite($gzf, $buffer . '<!-- hyper cache gzip ' . date('Y-m-d h:i:s') . ' -->');
+            gzclose($gzf);
+        }
     }
     return $buffer;
 }
@@ -786,20 +746,13 @@ $ret=$kv->set($lc_file_ts,strval(time()));
 if (!function_exists('hyper_cache_sanitize_uri')) {
 
     function hyper_cache_sanitize_uri($uri) {
-        if (HYPER_CACHE_LOG) {
-            $this->log('URI: ' . $uri);
-        }
         $uri = preg_replace('/[^a-zA-Z0-9\/\-_]+/', '_', $uri);
         $uri = preg_replace('/\/+/', '/', $uri);
-        //$uri = rtrim($uri, '.-_/');
         if (empty($uri) || $uri[0] != '/') {
             $uri = '/' . $uri;
         }
         if (strlen($uri) > 1 && substr($uri, -1, 1) == '/') {
             $uri = rtrim($uri, '/') . '_';
-        }
-        if (HYPER_CACHE_LOG) {
-            $this->log('Sanitized URI: ' . $uri);
         }
         return $uri;
     }

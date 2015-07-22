@@ -84,13 +84,11 @@ if ($controls->is_action('save')) {
     }
 }
 
-
 /**
 *
 *    Hyper Cache For SAE Start
 *
 */
-
 function deletekvdb($name='',$is_file=false){
     $kv = new SaeKV();
 // 初始化SaeKV对象
@@ -109,18 +107,16 @@ while (true) {
    $ret = $kv->pkrget('cache/'.strtolower($_SERVER['HTTP_HOST']).$name, 100, $start_key);
 }
 }
-
 }
 
 if ($controls->is_action('clean')) {
     /*
     $folder = $plugin->get_folder();
     $plugin->remove_dir($folder . '');*/
-
     $plugin->deletekvdb();//DELETE ALL CACHE
-
      $controls->messages = __('The cache folder has been cleaned.', 'hyper-cache');
 }
+
 
 if ($controls->is_action('autoclean')) {
     $plugin->hook_hyper_cache_clean();
@@ -148,17 +144,13 @@ if ($controls->is_action('clean-home')) {
         $base = 'category';
     }
     $plugin->remove_dir($folder . '/' . $base . '/');
-
     $base = get_option('tag_base');
     if (empty($base)) {
         $base = 'tag';
     }
     $plugin->remove_dir($folder . '/' . $base . '/');
-
     $plugin->remove_dir($folder . '/type/');
-
     $plugin->remove_dir($folder . '/' . date('Y') . '/');*/
-
 $na='index';
 $plugin->deletekvdb($na);
 $na='robots.txt';
@@ -167,29 +159,25 @@ $na='feed';
 $plugin->deletekvdb($na);
 $na='page';
 $plugin->deletekvdb($na);
-
 $na = get_option('category_base');
     if (empty($na)) {
         $na = 'category';
     }
 $plugin->deletekvdb($na);
-
     $na = get_option('tag_base');
     if (empty($na)) {
         $na = 'tag';
     }
 $plugin->deletekvdb($na);
-
 }
-
 if ($controls->is_action('delete')) {
-    delete_option('hyper-cahe');
+    delete_option('hyper-cache');
     $controls->messages = __('Options deleted', 'hyper-cache');
 }
 
 if ($controls->is_action('size')) {
     $folder = $plugin->get_folder();
-    $controls->messages = __('Cache size', 'hyper-cache') . ': ' . size_format((hc_size($folder . '/')));
+    $controls->messages = __('Cache size', 'hyper-cache') . ': Unable To Calculate For The Environment IS SAE/')));
 }
 
 if ($controls->is_action('reset_mobile_agents')) {
@@ -226,6 +214,7 @@ if ($controls->is_action('import')) {
         $controls->messages = __('Old options imported, now review them and save.', 'hyper-cache');
     }
 }
+
 
 function hc_size($dir) {
     //$files = glob($dir . '*', GLOB_MARK);
@@ -277,6 +266,27 @@ if (!wp_next_scheduled('hyper_cache_clean')) {
         </div>
     <?php } ?>
 
+    <?php if (@filemtime(WP_CONTENT_DIR . '/advanced-cache.php') < @filemtime(dirname(__FILE__) . '/advanced-cache.php')) { ?>
+        <div class="error">
+            <p>
+                <?php _e('You must save the options since some files must be updated.', 'hyper-cache'); ?>
+            </p>
+        </div>
+    <?php } ?>
+
+    <?php if (!is_dir($plugin->get_folder())) { ?>
+        <div class="error">
+            <p>
+                <?php
+                printf(__('Hyper Cache was not able to create or find the %s folder.', 'hyper-cache'),
+                    '<code>' . $plugin->get_folder() . '</code>');
+                _e('Please create it manually with list, write and read permissions (usually 777).', 'hyper-cache');
+                ?>
+
+            </p>
+        </div>
+    <?php } ?>
+
     <?php if (get_option('permalink_structure') == '') { ?>
         <div class="error">
             <p>
@@ -294,6 +304,8 @@ if (!wp_next_scheduled('hyper_cache_clean')) {
         <a href="http://www.satollo.net/plugins/header-footer?utm_source=hyper-cache&utm_medium=banner&utm_campaign=header-footer" target="_blank"><img src="http://www.satollo.net/images/plugins/header-footer-icon.png"></a>
         <a href="http://www.satollo.net/plugins/include-me?utm_source=hyper-cache&utm_medium=banner&utm_campaign=include-me" target="_blank"><img src="http://www.satollo.net/images/plugins/include-me-icon.png"></a>
         <a href="http://www.thenewsletterplugin.com/?utm_source=hyper-cache&utm_medium=banner&utm_campaign=newsletter" target="_blank"><img src="http://www.satollo.net/images/plugins/newsletter-icon.png"></a>
+        <a href="http://www.satollo.net/plugins/mailer?utm_source=hyper-cache&utm_medium=banner&utm_campaign=mailer" target="_blank"><img src="http://www.satollo.net/images/plugins/mailer-icon.png"></a>
+        <a href="http://www.satollo.net/plugins/php-text-widget?utm_source=hyper-cache&utm_medium=banner&utm_campaign=php-text-widget" target="_blank"><img src="http://www.satollo.net/images/plugins/php-text-widget-icon.png"></a>
     </p>
 
 
@@ -386,6 +398,16 @@ if (!wp_next_scheduled('hyper_cache_clean')) {
 
                             <p class="description">
                                 <?php _e('If you note odd characters when enabled, disable it since your server is already compressing the pages.', 'hyper-cache'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><?php _e('Enable on-the-fly compression', 'hyper-cache'); ?></th>
+                        <td>
+                            <?php $controls->checkbox('gzip_on_the_fly'); ?>
+
+                            <p class="description">
+                                <?php _e('Enable on the fly compression for non cached pages.', 'hyper-cache'); ?>
                             </p>
                         </td>
                     </tr>

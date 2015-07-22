@@ -126,18 +126,7 @@ if (HC_MOBILE === 1 && $hyper_cache_is_mobile) {
 //$hc_file = ABSPATH . 'wp-content/cache/lite-cache' . $_SERVER['REQUEST_URI'] . '/index' . $hc_group . '.html';
 $hc_uri = hyper_cache_sanitize_uri($_SERVER['REQUEST_URI']);
 
-/**
-*
-* Hyper Cache For SAE Start
-*
-*/
-$kv = new SaeKV();
-// 初始化SaeKV对象
-$ret = $kv->init();
-
-$hc_file = 'saekv://cache/' . strtolower($_SERVER['HTTP_HOST']) . $hc_uri . 'index' . $hyper_cache_group . '.html';
-$hc_file_kv='cache/'. strtolower($_SERVER['HTTP_HOST']) . $hc_uri . 'index' . $hyper_cache_group . '.html-ts';
-
+$hc_file = 'HC_FOLDER/' . strtolower($_SERVER['HTTP_HOST']) . $hc_uri . '/index' . $hyper_cache_group . '.html';
 if (HC_GZIP == 1 && $hyper_cache_gzip_accepted) {
     $hc_gzip = true;
 } else {
@@ -148,31 +137,12 @@ if ($hc_gzip) {
     $hc_file .= '.gz';
 }
 
-$ret=$kv->get($hc_file_kv);
-
-if (is_bool($ret)) {
+if (!is_file($hc_file)) {
     hyper_cache_header('continue - no file');
     return false;
 }
 
-
-//$hc_file_time = filemtime($hc_file);
-
-$ret=$kv->get($hc_file_kv);
-$ood=is_string($ret);
-if ($ood) {
-    $hc_file_time = intval($ret);
-}else{
-    $tss=strval(time());
-    $ret=$kv->set($hc_file_kv,$tss);
-    $hc_file_time = time();
-}
-
-/**
-*
-* Hyper Cache For SAE End
-*
-*/
+$hc_file_time = filemtime($hc_file);
 
 if (HC_SERVE_EXPIRED_TO_BOT && $hyper_cache_is_bot) {
     hyper_cache_header('hit - bot');
