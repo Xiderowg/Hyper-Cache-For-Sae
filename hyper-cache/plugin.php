@@ -695,12 +695,14 @@ function hyper_cache_callback($buffer) {
 
     if (is_404()) {
         $lc_file = HyperCache::$instance->get_folder() . '/' . strtolower($_SERVER['HTTP_HOST']) . '/404.html';
+        $lc_file_ts='cache/'.strtolower($_SERVER['HTTP_HOST']).'/404.html-ts';
     } else {
         $lc_file = $lc_dir . '/index' . $hyper_cache_group . '.html';
-
+        $lc_file_ts='cache/'.strtolower($_SERVER['HTTP_HOST']). $uri .'index'.$hyper_cache_group.'.html-ts';
+/*
         if (!is_dir($lc_dir)) {
             wp_mkdir_p($lc_dir);
-        }
+        }*/
     }
 
     if (!isset($options['reject_comment_authors']) && is_singular() && !is_feed() && !is_user_logged_in()) {
@@ -730,13 +732,16 @@ function hyper_cache_callback($buffer) {
         }
     }
 
-    @file_put_contents($lc_file, $buffer . '<!-- hyper cache ' . date('Y-m-d h:i:s') . ' -->');
-
+    @file_put_contents($lc_file, $buffer . '<!-- hyper cache for sae' . date('Y-m-d h:i:s') . ' -->');
+    $kv = new SaeKV();
+// 初始化SaeKV对象
+$ret = $kv->init();
+$ret=$kv->set($lc_file_ts,strval(time()));
     // Saves the gzipped version
     if (isset($options['gzip'])) {
         $gzf = gzopen($lc_file . '.gz', 'wb9');
         if ($gzf !== false) {
-            gzwrite($gzf, $buffer . '<!-- hyper cache gzip ' . date('Y-m-d h:i:s') . ' -->');
+            gzwrite($gzf, $buffer . '<!-- hyper cache gzip for sae' . date('Y-m-d h:i:s') . ' -->');
             gzclose($gzf);
         }
     }
