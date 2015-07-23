@@ -1,11 +1,11 @@
 <?php
 
 /*
-Plugin Name: Memcached
+Plugin Name: Memcached for SAE
 Description: Memcached backend for the WP Object Cache.
 Version: 2.0.2
 Plugin URI: http://wordpress.org/extend/plugins/memcached/
-Author: Ryan Boren, Denis de Bernardy, Matt Martz
+Author: Ryan Boren, Denis de Bernardy, Matt Martz, Xider
 Install this file to wp-content/object-cache.php
 */
 
@@ -147,7 +147,7 @@ class WP_Object_Cache {
 	function incr($id, $n = 1, $group = 'default' ) {
 		$key = $this->key($id, $group);
 		$mc =& $this->get_mc($group);
-		$this->cache[ $key ] = $mc->increment( $key, $n );	
+		$this->cache[ $key ] = $mc->increment( $key, $n );
 		return $this->cache[ $key ];
 	}
 
@@ -182,7 +182,7 @@ class WP_Object_Cache {
 		if ( false !== $result )
 			unset($this->cache[$key]);
 
-		return $result; 
+		return $result;
 	}
 
 	function flush() {
@@ -258,7 +258,7 @@ class WP_Object_Cache {
 		return $return;
 	}
 
-	function key($key, $group) {	
+	function key($key, $group) {
 		if ( empty($group) )
 			$group = 'default';
 
@@ -327,15 +327,15 @@ class WP_Object_Cache {
 		echo "</p>\n";
 		echo "<h3>Memcached:</h3>";
 		foreach ( $this->group_ops as $group => $ops ) {
-			if ( !isset($_GET['debug_queries']) && 500 < count($ops) ) { 
-				$ops = array_slice( $ops, 0, 500 ); 
+			if ( !isset($_GET['debug_queries']) && 500 < count($ops) ) {
+				$ops = array_slice( $ops, 0, 500 );
 				echo "<big>Too many to show! <a href='" . add_query_arg( 'debug_queries', 'true' ) . "'>Show them anyway</a>.</big>\n";
-			} 
+			}
 			echo "<h4>$group commands</h4>";
 			echo "<pre>\n";
 			$lines = array();
 			foreach ( $ops as $op ) {
-				$lines[] = $this->colorize_debug_line($op); 
+				$lines[] = $this->colorize_debug_line($op);
 			}
 			print_r($lines);
 			echo "</pre>\n";
@@ -358,7 +358,7 @@ class WP_Object_Cache {
 	function __construct() {
 		self::WP_Object_Cache();
 	}
-	
+
 	function WP_Object_Cache() {
 		global $memcached_servers;
 
